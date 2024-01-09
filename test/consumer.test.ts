@@ -294,15 +294,6 @@ describe('Consumer', () => {
     });
 
     it('waits before repolling when a credentials error occurs', async () => {
-      consumer = new Consumer({
-        queueUrls: ['some-queue-url'],
-        region: 'some-region',
-        handleMessage,
-        sqs,
-        authenticationErrorTimeout: AUTHENTICATION_ERROR_TIMEOUT,
-        pollingWaitTimeMs: 100
-      });
-
       const credentialsErr = {
         code: 'CredentialsError',
         message: 'Missing credentials in config'
@@ -320,14 +311,6 @@ describe('Consumer', () => {
     });
 
     it('waits before repolling when a 403 error occurs', async () => {
-      consumer = new Consumer({
-        queueUrls: ['some-queue-url'],
-        region: 'some-region',
-        handleMessage,
-        sqs,
-        authenticationErrorTimeout: AUTHENTICATION_ERROR_TIMEOUT,
-        pollingWaitTimeMs: 100
-      });
       const invalidSignatureErr = {
         statusCode: 403,
         message: 'The security token included in the request is invalid'
@@ -345,14 +328,6 @@ describe('Consumer', () => {
     });
 
     it('waits before repolling when a UnknownEndpoint error occurs', async () => {
-      consumer = new Consumer({
-        queueUrls: ['some-queue-url'],
-        region: 'some-region',
-        handleMessage,
-        sqs,
-        authenticationErrorTimeout: AUTHENTICATION_ERROR_TIMEOUT,
-        pollingWaitTimeMs: 100
-      });
       const unknownEndpointErr = {
         code: 'UnknownEndpoint',
         message:
