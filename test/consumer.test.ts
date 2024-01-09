@@ -58,7 +58,7 @@ describe('Consumer', () => {
     sqs.changeMessageVisibilityBatch = stubResolve();
 
     consumer = new Consumer({
-      queueUrl: 'some-queue-url',
+      queueUrls: ['some-queue-url'],
       region: 'some-region',
       handleMessage,
       sqs,
@@ -85,7 +85,7 @@ describe('Consumer', () => {
       new Consumer({
         handleMessage: undefined,
         region: 'some-region',
-        queueUrl: 'some-queue-url'
+        queueUrls: ['some-queue-url']
       });
     });
   });
@@ -94,7 +94,7 @@ describe('Consumer', () => {
     assert.throws(() => {
       new Consumer({
         region: 'some-region',
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         handleMessage,
         batchSize: 11
       });
@@ -105,7 +105,7 @@ describe('Consumer', () => {
     assert.throws(() => {
       new Consumer({
         region: 'some-region',
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         handleMessage,
         batchSize: -1
       });
@@ -116,7 +116,7 @@ describe('Consumer', () => {
     assert.throws(() => {
       new Consumer({
         region: 'some-region',
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         handleMessage,
         heartbeatInterval: 30
       });
@@ -127,7 +127,7 @@ describe('Consumer', () => {
     assert.throws(() => {
       new Consumer({
         region: 'some-region',
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         handleMessage,
         heartbeatInterval: 30,
         visibilityTimeout: 30
@@ -139,7 +139,7 @@ describe('Consumer', () => {
     it('creates a new instance of a Consumer object', () => {
       const instance = Consumer.create({
         region: 'some-region',
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         batchSize: 1,
         visibilityTimeout: 10,
         waitTimeSeconds: 10,
@@ -193,7 +193,7 @@ describe('Consumer', () => {
     it('fires a timeout event if handler function takes too long', async () => {
       const handleMessageTimeout = 500;
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 1000)),
@@ -218,7 +218,7 @@ describe('Consumer', () => {
 
     it('handles unexpected exceptions thrown by the handler function', async () => {
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessage: () => {
           throw new Error('unexpected parsing error');
@@ -294,6 +294,15 @@ describe('Consumer', () => {
     });
 
     it('waits before repolling when a credentials error occurs', async () => {
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url'],
+        region: 'some-region',
+        handleMessage,
+        sqs,
+        authenticationErrorTimeout: AUTHENTICATION_ERROR_TIMEOUT,
+        pollingWaitTimeMs: 100
+      });
+
       const credentialsErr = {
         code: 'CredentialsError',
         message: 'Missing credentials in config'
@@ -311,6 +320,14 @@ describe('Consumer', () => {
     });
 
     it('waits before repolling when a 403 error occurs', async () => {
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url'],
+        region: 'some-region',
+        handleMessage,
+        sqs,
+        authenticationErrorTimeout: AUTHENTICATION_ERROR_TIMEOUT,
+        pollingWaitTimeMs: 100
+      });
       const invalidSignatureErr = {
         statusCode: 403,
         message: 'The security token included in the request is invalid'
@@ -328,6 +345,14 @@ describe('Consumer', () => {
     });
 
     it('waits before repolling when a UnknownEndpoint error occurs', async () => {
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url'],
+        region: 'some-region',
+        handleMessage,
+        sqs,
+        authenticationErrorTimeout: AUTHENTICATION_ERROR_TIMEOUT,
+        pollingWaitTimeMs: 100
+      });
       const unknownEndpointErr = {
         code: 'UnknownEndpoint',
         message:
@@ -347,7 +372,7 @@ describe('Consumer', () => {
 
     it('waits before repolling when a polling timeout is set', async () => {
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessage,
         sqs,
@@ -457,7 +482,7 @@ describe('Consumer', () => {
       });
 
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: 'some-region',
         handleMessage,
@@ -499,7 +524,7 @@ describe('Consumer', () => {
       });
 
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         attributeNames: ['ApproximateReceiveCount'],
         region: 'some-region',
         handleMessage,
@@ -594,7 +619,7 @@ describe('Consumer', () => {
       handleMessage.resolves(null);
 
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: 'some-region',
         handleMessage,
@@ -611,7 +636,7 @@ describe('Consumer', () => {
 
     it('calls the handleMessagesBatch function when a batch of messages is received', async () => {
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: 'some-region',
         handleMessageBatch,
@@ -628,7 +653,7 @@ describe('Consumer', () => {
 
     it('prefers handleMessagesBatch over handleMessage when both are set', async () => {
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: 'some-region',
         handleMessageBatch,
@@ -647,7 +672,7 @@ describe('Consumer', () => {
 
     it('uses the correct visibility timeout for long running handler functions', async () => {
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -686,7 +711,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessageBatch: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -730,7 +755,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -761,7 +786,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessageBatch: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -848,7 +873,7 @@ describe('Consumer', () => {
   describe('delete messages property', () => {
     beforeEach(() => {
       consumer = new Consumer({
-        queueUrl: 'some-queue-url',
+        queueUrls: ['some-queue-url'],
         region: 'some-region',
         handleMessage,
         sqs,
