@@ -523,9 +523,8 @@ describe('Consumer', () => {
     });
 
     it('receives message from next queue when empty message is returned', async () => {
-
       consumer = new Consumer({
-        queueUrls: ['some-queue-url','some-queue-url-2'],
+        queueUrls: ['some-queue-url', 'some-queue-url-2'],
         attributeNames: ['ApproximateReceiveCount'],
         region: 'some-region',
         waitTimeSeconds: 20,
@@ -543,7 +542,7 @@ describe('Consumer', () => {
       consumer.stop();
 
       sandbox.assert.callCount(sqs.receiveMessage, 4);
-      
+
       assert.deepEqual(sqs.receiveMessage.getCall(0).args[0], {
         QueueUrl: 'some-queue-url',
         AttributeNames: ['ApproximateReceiveCount'],
