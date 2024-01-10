@@ -522,6 +522,65 @@ describe('Consumer', () => {
       assert.equal(message, messageWithAttr);
     });
 
+    it('receives message from next queue when empty message is returned', async () => {
+
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url','some-queue-url-2'],
+        attributeNames: ['ApproximateReceiveCount'],
+        region: 'some-region',
+        waitTimeSeconds: 20,
+        handleMessage,
+        sqs
+      });
+      sqs.receiveMessage = stubResolve({});
+
+      consumer.start();
+      await pEvent(consumer, 'empty');
+      await pEvent(consumer, 'empty');
+      clock.tickAsync(1);
+      await pEvent(consumer, 'empty');
+      await pEvent(consumer, 'empty');
+      consumer.stop();
+
+      sandbox.assert.callCount(sqs.receiveMessage, 4);
+      
+      assert.deepEqual(sqs.receiveMessage.getCall(0).args[0], {
+        QueueUrl: 'some-queue-url',
+        AttributeNames: ['ApproximateReceiveCount'],
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined
+      });
+
+      assert.deepEqual(sqs.receiveMessage.getCall(1).args[0], {
+        QueueUrl: 'some-queue-url-2',
+        AttributeNames: ['ApproximateReceiveCount'],
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined
+      });
+
+      assert.deepEqual(sqs.receiveMessage.getCall(2).args[0], {
+        QueueUrl: 'some-queue-url',
+        AttributeNames: ['ApproximateReceiveCount'],
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined
+      });
+
+      assert.deepEqual(sqs.receiveMessage.getCall(3).args[0], {
+        QueueUrl: 'some-queue-url-2',
+        AttributeNames: ['ApproximateReceiveCount'],
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined
+      });
+    });
+
     it('fires an emptyQueue event when all messages have been consumed', async () => {
       sqs.receiveMessage = stubResolve({});
 

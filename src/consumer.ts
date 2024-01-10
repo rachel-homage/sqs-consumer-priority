@@ -366,6 +366,7 @@ export class Consumer extends EventEmitter {
           const response = await this.receiveMessage(receiveParams);
           if (hasMessages(response)) {
             await this.handleSqsResponse(queueUrl, response);
+            break;
           } else {
             this.emit('empty');
           }
@@ -376,9 +377,9 @@ export class Consumer extends EventEmitter {
               'There was an authentication error. Pausing before retrying.'
             );
             currentPollingTimeout = this.authenticationErrorTimeout;
+            break;
           }
         }
-        break;
       }
 
       setTimeout(this.poll, currentPollingTimeout);
