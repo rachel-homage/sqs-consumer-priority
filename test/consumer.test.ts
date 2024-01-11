@@ -522,6 +522,53 @@ describe('Consumer', () => {
       assert.equal(message, messageWithAttr);
     });
 
+    it('consumes messages on same priority queue if queue is processed ', async () => {
+      const messageWithAttr = {
+        ReceiptHandle: 'receipt-handle-1',
+        MessageId: '1',
+        Body: 'body-1',
+        Attributes: {
+          ApproximateReceiveCount: 1
+        }
+      };
+
+      sqs.receiveMessage = stubResolve({
+        Messages: [messageWithAttr]
+      });
+
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url', 'some-queue-url-2'],
+        attributeNames: ['ApproximateReceiveCount'],
+        region: 'some-region',
+        handleMessage,
+        sqs
+      });
+
+      consumer.start();
+      await pEvent(consumer, 'message_received');
+      clock.tickAsync(1);
+      await pEvent(consumer, 'message_received');
+      consumer.stop();
+
+      assert.deepEqual(sqs.receiveMessage.getCall(0).args[0], {
+        QueueUrl: 'some-queue-url',
+        AttributeNames: ['ApproximateReceiveCount'],
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined
+      });
+
+      assert.deepEqual(sqs.receiveMessage.getCall(1).args[0], {
+        QueueUrl: 'some-queue-url',
+        AttributeNames: ['ApproximateReceiveCount'],
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined
+      });
+    });
+
     it('receives message from next queue when empty message is returned', async () => {
       consumer = new Consumer({
         queueUrls: ['some-queue-url', 'some-queue-url-2'],
