@@ -3,7 +3,7 @@ import { ReceiveMessageCommandOutput } from '@aws-sdk/client-sqs';
 import { ConsumerOptions } from './types';
 
 const requiredOptions = [
-  'queueUrl',
+  'queueUrls',
   // only one of handleMessage / handleMessagesBatch is required
   'handleMessage|handleMessageBatch'
 ];

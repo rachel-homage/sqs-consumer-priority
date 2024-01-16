@@ -4,7 +4,7 @@ export interface ConsumerOptions {
   /**
    * The SQS queue URL.
    */
-  queueUrl: string;
+  queueUrls: string[];
   /**
    * List of queue attributes to retrieve (i.e.
    * `['All', 'ApproximateFirstReceiveTimestamp', 'ApproximateReceiveCount']`).

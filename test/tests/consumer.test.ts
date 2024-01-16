@@ -82,7 +82,7 @@ describe('Consumer', () => {
     sqs.send.withArgs(mockChangeMessageVisibilityBatch).resolves();
 
     consumer = new Consumer({
-      queueUrl: QUEUE_URL,
+      queueUrls: [QUEUE_URL],
       region: REGION,
       handleMessage,
       sqs,
@@ -101,7 +101,7 @@ describe('Consumer', () => {
         new Consumer({
           handleMessage: undefined,
           region: REGION,
-          queueUrl: QUEUE_URL
+          queueUrls: [QUEUE_URL]
         });
       }, `Missing SQS consumer option [ handleMessage or handleMessageBatch ].`);
     });
@@ -110,7 +110,7 @@ describe('Consumer', () => {
       assert.throws(() => {
         new Consumer({
           region: REGION,
-          queueUrl: QUEUE_URL,
+          queueUrls: [QUEUE_URL],
           handleMessage,
           batchSize: 11
         });
@@ -121,7 +121,7 @@ describe('Consumer', () => {
       assert.throws(() => {
         new Consumer({
           region: REGION,
-          queueUrl: QUEUE_URL,
+          queueUrls: [QUEUE_URL],
           handleMessage,
           batchSize: -1
         });
@@ -132,7 +132,7 @@ describe('Consumer', () => {
       assert.throws(() => {
         new Consumer({
           region: REGION,
-          queueUrl: QUEUE_URL,
+          queueUrls: [QUEUE_URL],
           handleMessage,
           heartbeatInterval: 30
         });
@@ -143,7 +143,7 @@ describe('Consumer', () => {
       assert.throws(() => {
         new Consumer({
           region: REGION,
-          queueUrl: QUEUE_URL,
+          queueUrls: [QUEUE_URL],
           handleMessage,
           heartbeatInterval: 30,
           visibilityTimeout: 30
@@ -156,7 +156,7 @@ describe('Consumer', () => {
     it('creates a new instance of a Consumer object', () => {
       const instance = Consumer.create({
         region: REGION,
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         batchSize: 1,
         visibilityTimeout: 10,
         waitTimeSeconds: 10,
@@ -250,7 +250,7 @@ describe('Consumer', () => {
     it('fires a timeout event if handler function takes too long', async () => {
       const handleMessageTimeout = 500;
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 1000)),
@@ -275,7 +275,7 @@ describe('Consumer', () => {
 
     it('handles unexpected exceptions thrown by the handler function', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () => {
           throw new Error('unexpected parsing error');
@@ -309,7 +309,7 @@ describe('Consumer', () => {
       }
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () => {
           throw new CustomError('unexpected parsing error');
@@ -333,7 +333,7 @@ describe('Consumer', () => {
       });
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () => {
           throw customError;
@@ -487,7 +487,7 @@ describe('Consumer', () => {
 
     it('waits before repolling when a polling timeout is set', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage,
         sqs,
@@ -537,7 +537,7 @@ describe('Consumer', () => {
       const postReceiveMessageCallbackStub = sandbox.stub().resolves(null);
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage,
         sqs,
@@ -573,7 +573,7 @@ describe('Consumer', () => {
 
     it('does not delete the message if shouldDeleteMessages is false', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage,
         sqs,
@@ -661,7 +661,7 @@ describe('Consumer', () => {
       });
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessage,
@@ -707,7 +707,7 @@ describe('Consumer', () => {
       ];
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         attributeNames,
         region: REGION,
         handleMessage,
@@ -820,7 +820,7 @@ describe('Consumer', () => {
       handleMessage.resolves(null);
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessage,
@@ -837,7 +837,7 @@ describe('Consumer', () => {
 
     it('calls the handleMessagesBatch function when a batch of messages is received', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessageBatch,
@@ -854,7 +854,7 @@ describe('Consumer', () => {
 
     it('handles unexpected exceptions thrown by the handler batch function', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessageBatch: () => {
@@ -890,7 +890,7 @@ describe('Consumer', () => {
       }
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessageBatch: () => {
@@ -916,7 +916,7 @@ describe('Consumer', () => {
       });
 
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessageBatch: () => {
@@ -940,7 +940,7 @@ describe('Consumer', () => {
 
     it('prefers handleMessagesBatch over handleMessage when both are set', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         messageAttributeNames: ['attribute-1', 'attribute-2'],
         region: REGION,
         handleMessageBatch,
@@ -959,7 +959,7 @@ describe('Consumer', () => {
 
     it('ack the message if handleMessage returns void', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: async () => {},
         sqs
@@ -983,7 +983,7 @@ describe('Consumer', () => {
 
     it('ack the message if handleMessage returns a message with the same ID', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: async () => {
           return {
@@ -1011,7 +1011,7 @@ describe('Consumer', () => {
 
     it('does not ack the message if handleMessage returns an empty object', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: async () => {
           return {};
@@ -1029,7 +1029,7 @@ describe('Consumer', () => {
 
     it('does not ack the message if handleMessage returns a different ID', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: async () => {
           return {
@@ -1049,7 +1049,7 @@ describe('Consumer', () => {
 
     it('deletes the message if alwaysAcknowledge is `true` and handleMessage returns an empty object', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: async () => {
           return {};
@@ -1076,7 +1076,7 @@ describe('Consumer', () => {
 
     it('does not call deleteMessageBatch if handleMessagesBatch returns an empty array', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessageBatch: async () => [],
         batchSize: 2,
@@ -1093,7 +1093,7 @@ describe('Consumer', () => {
 
     it('calls deleteMessageBatch if alwaysAcknowledge is `true` and handleMessagesBatch returns an empty array', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessageBatch: async () => [],
         batchSize: 2,
@@ -1122,7 +1122,7 @@ describe('Consumer', () => {
 
     it('ack all messages if handleMessageBatch returns void', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessageBatch: async () => {},
         batchSize: 2,
@@ -1150,7 +1150,7 @@ describe('Consumer', () => {
 
     it('ack only returned messages if handleMessagesBatch returns an array', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessageBatch: async () => [
           { MessageId: '123', ReceiptHandle: 'receipt-handle' }
@@ -1180,7 +1180,7 @@ describe('Consumer', () => {
 
     it('uses the correct visibility timeout for long running handler functions', async () => {
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -1233,7 +1233,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessageBatch: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -1315,7 +1315,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -1346,7 +1346,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessageBatch: () =>
           new Promise((resolve) => setTimeout(resolve, 75000)),
@@ -1368,6 +1368,99 @@ describe('Consumer', () => {
 
       assert.ok(err);
       assert.equal(err.message, 'Error changing visibility timeout: failed');
+    });
+
+    it('receives message from next queue when empty message is returned', async () => {
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url','some-queue-url-2'],
+        region: 'some-region',
+        waitTimeSeconds: 20,
+        handleMessage,
+        sqs
+      });
+      sqs.send.withArgs(mockReceiveMessage).resolves({
+        Messages: []
+      });
+      consumer.start();
+      await pEvent(consumer, 'empty');
+      await pEvent(consumer, 'empty');
+      clock.tickAsync(1);
+      await pEvent(consumer, 'empty');
+      await pEvent(consumer, 'empty');
+      consumer.stop();
+
+      sandbox.assert.callCount(sqs.send, 4);
+
+      assert.deepEqual(sqs.send.getCall(0).args[0].input, {
+        AttributeNames: [],
+        QueueUrl: 'some-queue-url',
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined,
+      });
+
+      assert.deepEqual(sqs.send.getCall(1).args[0].input, {
+        AttributeNames: [],
+        QueueUrl: 'some-queue-url-2',
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined,
+      });
+
+      assert.deepEqual(sqs.send.getCall(2).args[0].input, {
+        AttributeNames: [],
+        QueueUrl: 'some-queue-url',
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined,
+      });
+
+      assert.deepEqual(sqs.send.getCall(3).args[0].input, {
+        AttributeNames: [],
+        QueueUrl: 'some-queue-url-2',
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: undefined,
+      });
+    });
+
+    it('consumes messages on same priority queue if queue is processed ', async () => {
+      sqs.send.withArgs(mockReceiveMessage).resolves({
+        Messages: [
+          { MessageId: '1', ReceiptHandle: 'receipt-handle-1', Body: 'body-1' }
+        ]
+      });
+      consumer = new Consumer({
+        queueUrls: ['some-queue-url', 'some-queue-url-2'],
+        region: 'some-region',
+        waitTimeSeconds: 0,
+        handleMessage,
+        sqs
+      });
+
+      consumer.start();
+      clock.tickAsync(0);
+      consumer.stop();
+
+      await clock.runAllAsync();
+
+      assert.deepEqual(sqs.send.getCall(0).args[0].input, {
+        AttributeNames: [],
+        QueueUrl: 'some-queue-url',
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 0,
+        VisibilityTimeout: undefined,
+      });
+
+      assert.deepEqual(sqs.send.getCall(1).args[0].input, {
+        QueueUrl: 'some-queue-url',
+        ReceiptHandle: 'receipt-handle-1'
+      });
     });
   });
 
@@ -1516,7 +1609,7 @@ describe('Consumer', () => {
     it('does not update the visibilityTimeout if the value is less than the heartbeatInterval', () => {
       consumer = new Consumer({
         region: REGION,
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         handleMessage,
         heartbeatInterval: 30,
         visibilityTimeout: 60
@@ -1643,7 +1736,7 @@ describe('Consumer', () => {
     it('throws an error for an unknown option', () => {
       consumer = new Consumer({
         region: REGION,
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         handleMessage,
         visibilityTimeout: 60
       });
@@ -1679,7 +1772,7 @@ describe('Consumer', () => {
         ]
       });
       consumer = new Consumer({
-        queueUrl: QUEUE_URL,
+        queueUrls: [QUEUE_URL],
         region: REGION,
         handleMessage: () =>
           new Promise((resolve) => setTimeout(resolve, 4000)),

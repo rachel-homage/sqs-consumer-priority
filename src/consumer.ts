@@ -37,7 +37,7 @@ import { logger } from './logger';
 export class Consumer extends TypedEventEmitter {
   private pollingTimeoutId: NodeJS.Timeout | undefined = undefined;
   private stopped = true;
-  private queueUrl: string;
+  private queueUrls: string[];
   private handleMessage: (message: Message) => Promise<Message | void>;
   private handleMessageBatch: (message: Message[]) => Promise<Message[] | void>;
   private preReceiveMessageCallback?: () => Promise<void>;
@@ -60,7 +60,7 @@ export class Consumer extends TypedEventEmitter {
   constructor(options: ConsumerOptions) {
     super();
     assertOptions(options);
-    this.queueUrl = options.queueUrl;
+    this.queueUrls = options.queueUrls;
     this.handleMessage = options.handleMessage;
     this.handleMessageBatch = options.handleMessageBatch;
     this.preReceiveMessageCallback = options.preReceiveMessageCallback;
@@ -188,7 +188,7 @@ export class Consumer extends TypedEventEmitter {
   /**
    * Poll for new messages from SQS
    */
-  private poll(): void {
+  private async poll(): Promise<void> {
     if (this.stopped) {
       logger.debug('cancelling_poll', {
         detail: 'Poll was called while consumer was stopped, cancelling poll...'
@@ -197,37 +197,46 @@ export class Consumer extends TypedEventEmitter {
     }
 
     logger.debug('polling');
+    try {
+      let currentPollingTimeout = this.pollingWaitTimeMs;
 
-    let currentPollingTimeout = this.pollingWaitTimeMs;
-    this.receiveMessage({
-      QueueUrl: this.queueUrl,
-      AttributeNames: this.attributeNames,
-      MessageAttributeNames: this.messageAttributeNames,
-      MaxNumberOfMessages: this.batchSize,
-      WaitTimeSeconds: this.waitTimeSeconds,
-      VisibilityTimeout: this.visibilityTimeout
-    })
-      .then(this.handleSqsResponse)
-      .catch((err) => {
-        this.emitError(err);
-        if (isConnectionError(err)) {
-          logger.debug('authentication_error', {
-            detail:
-              'There was an authentication error. Pausing before retrying.'
-          });
-          currentPollingTimeout = this.authenticationErrorTimeout;
+      for (const queueUrl of this.queueUrls) {
+        const receiveParams = {
+          QueueUrl: queueUrl,
+          AttributeNames: this.attributeNames,
+          MessageAttributeNames: this.messageAttributeNames,
+          MaxNumberOfMessages: this.batchSize,
+          WaitTimeSeconds: this.waitTimeSeconds,
+          VisibilityTimeout: this.visibilityTimeout
+        };
+        try {
+          const response = await this.receiveMessage(receiveParams);
+          if (hasMessages(response)) {
+            await this.handleSqsResponse(queueUrl, response);
+            break;
+          } else {
+            this.emit('empty');
+          }
+        } catch (err) {
+          this.emitError(err);
+          if (isConnectionError(err)) {
+            logger.debug('authentication_error', {
+              detail:
+                'There was an authentication error. Pausing before retrying.'
+            });
+            currentPollingTimeout = this.authenticationErrorTimeout;
+            break;
+          }
         }
-        return;
-      })
-      .then(() => {
-        if (this.pollingTimeoutId) {
-          clearTimeout(this.pollingTimeoutId);
-        }
-        this.pollingTimeoutId = setTimeout(this.poll, currentPollingTimeout);
-      })
-      .catch((err) => {
-        this.emitError(err);
-      });
+      }
+
+      if (this.pollingTimeoutId) {
+        clearTimeout(this.pollingTimeoutId);
+      }
+      this.pollingTimeoutId = setTimeout(this.poll, currentPollingTimeout);
+    } catch (err) {
+      this.emitError(err);
+    }
   }
 
   /**
@@ -258,9 +267,11 @@ export class Consumer extends TypedEventEmitter {
   /**
    * Handles the response from AWS SQS, determining if we should proceed to
    * the message handler.
+   * @param queueUrl queue url to process messages from
    * @param response The output from AWS SQS
    */
   private async handleSqsResponse(
+    queueUrl: string,
     response: ReceiveMessageCommandOutput
   ): Promise<void> {
     if (hasMessages(response)) {
@@ -271,9 +282,11 @@ export class Consumer extends TypedEventEmitter {
       }, 1000);
 
       if (this.handleMessageBatch) {
-        await this.processMessageBatch(response.Messages);
+        await this.processMessageBatch(queueUrl, response.Messages);
       } else {
-        await Promise.all(response.Messages.map(this.processMessage));
+        await Promise.all(response.Messages.map((msg: Message) => {
+          return this.processMessage(queueUrl, msg);
+        }));
       }
 
       clearInterval(handlerProcessingDebugger);
@@ -287,22 +300,23 @@ export class Consumer extends TypedEventEmitter {
   /**
    * Process a message that has been received from SQS. This will execute the message
    * handler and delete the message once complete.
+   * @param queueUrl queue url to process messages from
    * @param message The message that was delivered from SQS
    */
-  private async processMessage(message: Message): Promise<void> {
+  private async processMessage(queueUrl: string, message: Message): Promise<void> {
     let heartbeatTimeoutId: NodeJS.Timeout | undefined = undefined;
 
     try {
       this.emit('message_received', message);
 
       if (this.heartbeatInterval) {
-        heartbeatTimeoutId = this.startHeartbeat(message);
+        heartbeatTimeoutId = this.startHeartbeat(queueUrl, message);
       }
 
       const ackedMessage = await this.executeHandler(message);
 
       if (ackedMessage?.MessageId === message.MessageId) {
-        await this.deleteMessage(message);
+        await this.deleteMessage(queueUrl, message);
 
         this.emit('message_processed', message);
       }
@@ -310,7 +324,7 @@ export class Consumer extends TypedEventEmitter {
       this.emitError(err, message);
 
       if (this.terminateVisibilityTimeout) {
-        await this.changeVisibilityTimeout(message, 0);
+        await this.changeVisibilityTimeout(queueUrl, message, 0);
       }
     } finally {
       if (this.heartbeatInterval) {
@@ -321,9 +335,10 @@ export class Consumer extends TypedEventEmitter {
 
   /**
    * Process a batch of messages from the SQS queue.
+   * @param queueUrl queue url to process messages from
    * @param messages The messages that were delivered from SQS
    */
-  private async processMessageBatch(messages: Message[]): Promise<void> {
+  private async processMessageBatch(queueUrl: string, messages: Message[]): Promise<void> {
     let heartbeatTimeoutId: NodeJS.Timeout | undefined = undefined;
 
     try {
@@ -332,13 +347,13 @@ export class Consumer extends TypedEventEmitter {
       });
 
       if (this.heartbeatInterval) {
-        heartbeatTimeoutId = this.startHeartbeat(null, messages);
+        heartbeatTimeoutId = this.startHeartbeat(queueUrl, null, messages);
       }
 
       const ackedMessages = await this.executeBatchHandler(messages);
 
       if (ackedMessages?.length > 0) {
-        await this.deleteMessageBatch(ackedMessages);
+        await this.deleteMessageBatch(queueUrl, ackedMessages);
 
         ackedMessages.forEach((message) => {
           this.emit('message_processed', message);
@@ -348,7 +363,7 @@ export class Consumer extends TypedEventEmitter {
       this.emit('error', err, messages);
 
       if (this.terminateVisibilityTimeout) {
-        await this.changeVisibilityTimeoutBatch(messages, 0);
+        await this.changeVisibilityTimeoutBatch(queueUrl, messages, 0);
       }
     } finally {
       clearInterval(heartbeatTimeoutId);
@@ -357,36 +372,41 @@ export class Consumer extends TypedEventEmitter {
 
   /**
    * Trigger a function on a set interval
+   * @param queueUrl queue url to process messages from
    * @param heartbeatFn The function that should be triggered
    */
   private startHeartbeat(
+    queueUrl: string,
     message?: Message,
     messages?: Message[]
   ): NodeJS.Timeout {
     return setInterval(() => {
       if (this.handleMessageBatch) {
         return this.changeVisibilityTimeoutBatch(
+          queueUrl,
           messages,
           this.visibilityTimeout
         );
       } else {
-        return this.changeVisibilityTimeout(message, this.visibilityTimeout);
+        return this.changeVisibilityTimeout(queueUrl, message, this.visibilityTimeout);
       }
     }, this.heartbeatInterval * 1000);
   }
 
   /**
    * Change the visibility timeout on a message
+   * @param queueUrl queue url to process messages from
    * @param message The message to change the value of
    * @param timeout The new timeout that should be set
    */
   private async changeVisibilityTimeout(
+    queueUrl: string,
     message: Message,
     timeout: number
   ): Promise<ChangeMessageVisibilityCommandOutput> {
     try {
       const input: ChangeMessageVisibilityCommandInput = {
-        QueueUrl: this.queueUrl,
+        QueueUrl: queueUrl,
         ReceiptHandle: message.ReceiptHandle,
         VisibilityTimeout: timeout
       };
@@ -405,15 +425,17 @@ export class Consumer extends TypedEventEmitter {
 
   /**
    * Change the visibility timeout on a batch of messages
+   * @param queueUrl queue url to process messages from
    * @param messages The messages to change the value of
    * @param timeout The new timeout that should be set
    */
   private async changeVisibilityTimeoutBatch(
+    queueUrl: string,
     messages: Message[],
     timeout: number
   ): Promise<ChangeMessageVisibilityBatchCommandOutput> {
     const params: ChangeMessageVisibilityBatchCommandInput = {
-      QueueUrl: this.queueUrl,
+      QueueUrl: queueUrl,
       Entries: messages.map((message) => ({
         Id: message.MessageId,
         ReceiptHandle: message.ReceiptHandle,
@@ -436,6 +458,7 @@ export class Consumer extends TypedEventEmitter {
 
   /**
    * Trigger the applications handleMessage function
+   * @param queueUrl queue url to process messages from
    * @param message The message that was received from SQS
    */
   private async executeHandler(message: Message): Promise<Message> {
@@ -502,9 +525,10 @@ export class Consumer extends TypedEventEmitter {
 
   /**
    * Delete a single message from SQS
+   * @param queueUrl queue url to process messages from
    * @param message The message to delete from the SQS queue
    */
-  private async deleteMessage(message: Message): Promise<void> {
+  private async deleteMessage(queueUrl: string, message: Message): Promise<void> {
     if (!this.shouldDeleteMessages) {
       logger.debug('skipping_delete', {
         detail:
@@ -515,7 +539,7 @@ export class Consumer extends TypedEventEmitter {
     logger.debug('deleting_message', { messageId: message.MessageId });
 
     const deleteParams: DeleteMessageCommandInput = {
-      QueueUrl: this.queueUrl,
+      QueueUrl: queueUrl,
       ReceiptHandle: message.ReceiptHandle
     };
 
@@ -533,7 +557,7 @@ export class Consumer extends TypedEventEmitter {
    * Delete a batch of messages from the SQS queue.
    * @param messages The messages that should be deleted from SQS
    */
-  private async deleteMessageBatch(messages: Message[]): Promise<void> {
+  private async deleteMessageBatch(queueUrl: string, messages: Message[]): Promise<void> {
     if (!this.shouldDeleteMessages) {
       logger.debug('skipping_delete', {
         detail:
@@ -546,7 +570,7 @@ export class Consumer extends TypedEventEmitter {
     });
 
     const deleteParams: DeleteMessageBatchCommandInput = {
-      QueueUrl: this.queueUrl,
+      QueueUrl: queueUrl,
       Entries: messages.map((message) => ({
         Id: message.MessageId,
         ReceiptHandle: message.ReceiptHandle
