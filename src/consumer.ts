@@ -284,9 +284,11 @@ export class Consumer extends TypedEventEmitter {
       if (this.handleMessageBatch) {
         await this.processMessageBatch(queueUrl, response.Messages);
       } else {
-        await Promise.all(response.Messages.map((msg: Message) => {
-          return this.processMessage(queueUrl, msg);
-        }));
+        await Promise.all(
+          response.Messages.map((msg: Message) => {
+            return this.processMessage(queueUrl, msg);
+          })
+        );
       }
 
       clearInterval(handlerProcessingDebugger);
@@ -303,7 +305,10 @@ export class Consumer extends TypedEventEmitter {
    * @param queueUrl queue url to process messages from
    * @param message The message that was delivered from SQS
    */
-  private async processMessage(queueUrl: string, message: Message): Promise<void> {
+  private async processMessage(
+    queueUrl: string,
+    message: Message
+  ): Promise<void> {
     let heartbeatTimeoutId: NodeJS.Timeout | undefined = undefined;
 
     try {
@@ -338,7 +343,10 @@ export class Consumer extends TypedEventEmitter {
    * @param queueUrl queue url to process messages from
    * @param messages The messages that were delivered from SQS
    */
-  private async processMessageBatch(queueUrl: string, messages: Message[]): Promise<void> {
+  private async processMessageBatch(
+    queueUrl: string,
+    messages: Message[]
+  ): Promise<void> {
     let heartbeatTimeoutId: NodeJS.Timeout | undefined = undefined;
 
     try {
@@ -388,7 +396,11 @@ export class Consumer extends TypedEventEmitter {
           this.visibilityTimeout
         );
       } else {
-        return this.changeVisibilityTimeout(queueUrl, message, this.visibilityTimeout);
+        return this.changeVisibilityTimeout(
+          queueUrl,
+          message,
+          this.visibilityTimeout
+        );
       }
     }, this.heartbeatInterval * 1000);
   }
@@ -528,7 +540,10 @@ export class Consumer extends TypedEventEmitter {
    * @param queueUrl queue url to process messages from
    * @param message The message to delete from the SQS queue
    */
-  private async deleteMessage(queueUrl: string, message: Message): Promise<void> {
+  private async deleteMessage(
+    queueUrl: string,
+    message: Message
+  ): Promise<void> {
     if (!this.shouldDeleteMessages) {
       logger.debug('skipping_delete', {
         detail:
@@ -557,7 +572,10 @@ export class Consumer extends TypedEventEmitter {
    * Delete a batch of messages from the SQS queue.
    * @param messages The messages that should be deleted from SQS
    */
-  private async deleteMessageBatch(queueUrl: string, messages: Message[]): Promise<void> {
+  private async deleteMessageBatch(
+    queueUrl: string,
+    messages: Message[]
+  ): Promise<void> {
     if (!this.shouldDeleteMessages) {
       logger.debug('skipping_delete', {
         detail:

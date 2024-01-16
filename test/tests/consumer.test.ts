@@ -1372,7 +1372,7 @@ describe('Consumer', () => {
 
     it('receives message from next queue when empty message is returned', async () => {
       consumer = new Consumer({
-        queueUrls: ['some-queue-url','some-queue-url-2'],
+        queueUrls: ['some-queue-url', 'some-queue-url-2'],
         region: 'some-region',
         waitTimeSeconds: 20,
         handleMessage,
@@ -1397,7 +1397,7 @@ describe('Consumer', () => {
         MessageAttributeNames: [],
         MaxNumberOfMessages: 1,
         WaitTimeSeconds: 20,
-        VisibilityTimeout: undefined,
+        VisibilityTimeout: undefined
       });
 
       assert.deepEqual(sqs.send.getCall(1).args[0].input, {
@@ -1406,7 +1406,7 @@ describe('Consumer', () => {
         MessageAttributeNames: [],
         MaxNumberOfMessages: 1,
         WaitTimeSeconds: 20,
-        VisibilityTimeout: undefined,
+        VisibilityTimeout: undefined
       });
 
       assert.deepEqual(sqs.send.getCall(2).args[0].input, {
@@ -1415,7 +1415,7 @@ describe('Consumer', () => {
         MessageAttributeNames: [],
         MaxNumberOfMessages: 1,
         WaitTimeSeconds: 20,
-        VisibilityTimeout: undefined,
+        VisibilityTimeout: undefined
       });
 
       assert.deepEqual(sqs.send.getCall(3).args[0].input, {
@@ -1424,7 +1424,7 @@ describe('Consumer', () => {
         MessageAttributeNames: [],
         MaxNumberOfMessages: 1,
         WaitTimeSeconds: 20,
-        VisibilityTimeout: undefined,
+        VisibilityTimeout: undefined
       });
     });
 
@@ -1454,7 +1454,7 @@ describe('Consumer', () => {
         MessageAttributeNames: [],
         MaxNumberOfMessages: 1,
         WaitTimeSeconds: 0,
-        VisibilityTimeout: undefined,
+        VisibilityTimeout: undefined
       });
 
       assert.deepEqual(sqs.send.getCall(1).args[0].input, {

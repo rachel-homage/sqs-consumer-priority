@@ -12,7 +12,7 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - DEBUG=1
     ports:
-      - "4566-4599:4566-4599"
+      - '4566-4599:4566-4599'
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - ./localstack:/etc/localstack/init/ready.d

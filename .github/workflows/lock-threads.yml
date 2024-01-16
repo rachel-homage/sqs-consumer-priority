@@ -1,8 +1,8 @@
-name: "Lock Threads"
+name: 'Lock Threads'
 
 on:
   schedule:
-    - cron: "0 * * * *" # Once a day, at midnight UTC
+    - cron: '0 * * * *' # Once a day, at midnight UTC
   workflow_dispatch:
 
 permissions:
@@ -19,10 +19,10 @@ jobs:
       - uses: dessant/lock-threads@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-inactive-days: "30" # Lock issues after 30 days of being closed
-          pr-inactive-days: "5" # Lock closed PRs after 5 days. This ensures that issues that stem from a PR are opened as issues, rather than comments on the recently merged PR.
-          add-issue-labels: "outdated"
-          exclude-issue-created-before: "2023-01-01"
+          issue-inactive-days: '30' # Lock issues after 30 days of being closed
+          pr-inactive-days: '5' # Lock closed PRs after 5 days. This ensures that issues that stem from a PR are opened as issues, rather than comments on the recently merged PR.
+          add-issue-labels: 'outdated'
+          exclude-issue-created-before: '2023-01-01'
           issue-comment: >
             This issue has been closed for more than 30 days. If this issue is still occuring, please open a new issue with more recent context.
           pr-comment: >
