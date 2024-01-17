@@ -11,7 +11,7 @@
     "build": "npm run clean && tsc",
     "watch": "tsc --watch",
     "clean": "rm -fr dist/*",
-    "prepublishOnly": "npm run build",
+    "prepublish": "npm run build",
     "test:unit": "mocha --recursive --full-trace --exit",
     "pretest:integration:init": "npm run build",
     "test:integration:init": "sh ./test/scripts/initIntTests.sh",
