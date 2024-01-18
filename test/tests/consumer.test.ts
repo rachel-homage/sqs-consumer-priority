@@ -1443,7 +1443,9 @@ describe('Consumer', () => {
       });
 
       consumer.start();
-      clock.tickAsync(0);
+      await pEvent(consumer, 'response_processed');
+      clock.tickAsync(1);
+      await pEvent(consumer, 'response_processed');
       consumer.stop();
 
       await clock.runAllAsync();
@@ -1457,9 +1459,13 @@ describe('Consumer', () => {
         VisibilityTimeout: undefined
       });
 
-      assert.deepEqual(sqs.send.getCall(1).args[0].input, {
+      assert.deepEqual(sqs.send.getCall(2).args[0].input, {
+        AttributeNames: [],
         QueueUrl: 'some-queue-url',
-        ReceiptHandle: 'receipt-handle-1'
+        MessageAttributeNames: [],
+        MaxNumberOfMessages: 1,
+        WaitTimeSeconds: 0,
+        VisibilityTimeout: undefined
       });
     });
   });
